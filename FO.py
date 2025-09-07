@@ -104,11 +104,9 @@ def optical_fiber(
         # Paso 5.3: Operador N en h/2
         A = np.exp(N_op*h/2)*A
 
-        progress_bar.update(100 * z / length) # ignorar esta linea..
+        progress_bar.update(100 * h / length) # ignorar esta linea..
 
-        prev_z = z
-        
-        # Paso 5.4: Si se optó por la implemntación adaptiva, calcular nueva h
+        # Paso 5.4: Si se optó por la implementación adaptiva, calcular nueva h
         if gamma == 0 or (beta_2 == 0 and beta_3 == 0):
             pass
         else:
@@ -116,6 +114,7 @@ def optical_fiber(
             h = phi_max/gamma/P_max
             h = min(h, length - z)  # Asegurar que h no exceda la longitud restante
 
+        prev_z = z
         z += h # Avanzar posición
         steps += 1 # Actualizar número de pasos
 
