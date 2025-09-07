@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.fft import fft, ifft, fftfreq
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks, windows
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 
@@ -12,10 +12,28 @@ def get_frequency(A, fs):
     f = f[pos_freqs]
     a = a[pos_freqs]
 
+    #todo: revisar como se calcula la frecuencia
+
     prom = 0.5 * np.max(a)
     peaks = find_peaks(a, prominence=prom)  # prominence evita detectar falsos picos por ruido en el espectro
 
     return f[peaks[0][0]]
+
+def create_gaussian_pulse(std, length, fs):
+    """
+        std: std deviation in ps
+        length: pulse length in ps
+        fs: sampling frequency, in Hz
+    """
+    n_samples = int(length * fs * 1e-12)
+    std_in_samples = std * fs * 1e-12
+
+    t = np.linspace(0, length, n_samples)
+
+    pulse = windows.gaussian(n_samples, std_in_samples)
+
+    return pulse, t
+
 
 def optical_fiber(
     A: np.ndarray,          # Señal óptica de entrada (array complejo, shape: (n_samples,))
@@ -145,11 +163,16 @@ def optical_fiber(
     return A, A_evolution, z_positions
 
 
-fs = 6000
-t = np.linspace(0, 1, fs, endpoint=False)
-A = np.exp(2j*np.pi*123*t) + 0.5*np.exp(2j*np.pi*300*t)
+lambda_carrier = 1e-6
 
-A_final, A_snapshots, z = optical_fiber(A, fs, 0.2, alpha=20, beta_2=0, beta_3=0, gamma=0)
+f_carrier = 3e8 / lambda_carrier
+fs = 5 * f_carrier
+pulse_std = 10  # in ps
+A, t = create_gaussian_pulse(pulse_std, pulse_std*4, fs)
+
+A = A * np.exp(2j*np.pi*f_carrier*t)    # modulacion
+
+A_final, A_snapshots, z = optical_fiber(A, fs, 20, alpha=0.2, beta_2=-20, beta_3=5000, gamma=1.5)
 
 plt.plot(t, A)
 plt.plot(t, A_final)
