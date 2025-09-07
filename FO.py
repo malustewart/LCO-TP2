@@ -2,7 +2,19 @@ import numpy as np
 from scipy.fft import fft, ifft, fftfreq
 from scipy.signal import find_peaks, windows
 from tqdm.auto import tqdm
+from dataclasses import dataclass
 import matplotlib.pyplot as plt
+
+@dataclass
+class OpticalFiberSystem:
+    A: np.ndarray
+    fs: float
+    length: float
+    alpha: float = 0.0
+    beta_2: float = 0.0
+    beta_3: float = 0.0
+    gamma: float = 0.0
+    phi_max: float = 0.05
 
 def get_frequency(A, fs):
     a = np.abs(fft(A))
@@ -36,17 +48,7 @@ def create_gaussian_pulse(std, length, fs):
 def modulate(modulator_A, modulator_t, f_carrier):
     return modulator_A * np.exp(2j*np.pi*f_carrier*modulator_t)
 
-def optical_fiber(
-    A: np.ndarray,          # Señal óptica de entrada (array complejo, shape: (n_samples,))
-    fs: float,       # Frecuencia de muestreo [Hz] (ajustar según la señal)
-    length: float,          # Longitud de la fibra [km]
-    alpha: float = 0.0,     # Atenuación [dB/km]
-    beta_2: float = 0.0,    # Dispersión de segundo orden [ps²/km]
-    beta_3: float = 0.0,    # Dispersión de tercer orden [ps³/km]
-    gamma: float = 0.0,     # Coeficiente no lineal [(W·km)⁻¹]
-    phi_max: float = 0.05,  # Máxima rotación de fase no lineal permitida [rad]
-    dz_save: float = 0.1,   # [km] interval at which to save intermediate results
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def optical_fiber(sys: OpticalFiberSystem, dz_save: float = 0.1) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Wrapper para simular la propagación en fibra óptica monomodo usando SSFM adaptativo.
     
@@ -83,6 +85,15 @@ def optical_fiber(
         Array de distancias [km] donde se guardaron las capturas.
     """
     
+    A = np.copy(sys.A)
+    fs = sys.fs
+    length = sys.length
+    alpha = sys.alpha
+    beta_2 = sys.beta_2
+    beta_3 = sys.beta_3
+    gamma = sys.gamma
+    phi_max= sys.phi_max
+
     # Paso 1: Convertir alpha a unidades neperianas (1/km)
     alpha_np = alpha * np.log(10) / 10
     
@@ -110,7 +121,6 @@ def optical_fiber(
     # Guardo primer captura
     A_evolution[0, :] = A
     next_save_idx = 1
-
 
     # Inicializar posición actual
     steps = 0
@@ -163,19 +173,31 @@ def optical_fiber(
     
     return A, A_evolution, z_positions
 
-import numpy as np
-import matplotlib.pyplot as plt
-
-def plot_fft_signals(signals, fs, labels=None):
+def plot_signals(signals, fs, labels=None):
     """
         All elements in signal array must be of the same lengt
     """
     n = len(signals[0])
-    f = np.fft.fftfreq(n, d=1/fs)
+
+    ###### in time (Real part) #######
+    plt.figure(figsize=(10,4))
+    # Plot real part of signal
+    for i, sig in enumerate(signals):
+        label = labels[i] if labels is not None else f"Signal {i+1}"
+        plt.plot(1e12*t, np.real(sig), label=label)
+    plt.xlabel("Time [ps]")
+    plt.ylabel("Amplitude")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+
+    ###### in frequency #######
+    f = np.fft.fftfreq(n, d=1/fs) / 1e12 # Thz
     f_shifted = np.fft.fftshift(f)
     fft_signals = [np.fft.fftshift(np.fft.fft(sig)) for sig in signals]
 
     # Create figure and axes objects
+    plt.figure()
     fig, (ax_amp, ax_phase) = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
 
     # Plot amplitude
@@ -188,13 +210,13 @@ def plot_fft_signals(signals, fs, labels=None):
     ax_amp.grid(True)
     ax_amp.legend()
     ax_phase.set_title("Phase Spectrum")
-    ax_phase.set_xlabel("Frequency [Hz]")
+    ax_phase.set_xlabel("Frequency [THz]")
     ax_phase.set_ylabel("Phase [rad]")
     ax_phase.grid(True)
     ax_phase.legend()
 
     plt.tight_layout()
-    plt.show()
+
 
 
 lambda_carrier = 1e-6
@@ -207,15 +229,25 @@ env, t = create_gaussian_pulse(pulse_std, pulse_std*10, fs)
 A0 = modulate(env, t, f_carrier)
 
 
-Af, A_snapshots, z = optical_fiber(A0, fs, 20, alpha=0.2, beta_2=-20, beta_3=5000, gamma=1.5)
+systems = [
+    OpticalFiberSystem(A0, fs, length=20, alpha=0.2, beta_2=0,   beta_3=0,    gamma=0),
+    OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=-20, beta_3=0,    gamma=0),
+    OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=0,   beta_3=0.15, gamma=0),
+    OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=0,   beta_3=0,    gamma=1.5),
+    OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=-20, beta_3=0,    gamma=1.5),
+]
 
-plot_fft_signals([A0, Af], fs)
+results = [optical_fiber(sys) for sys in systems]
+[
+    plot_signals([A0, result[0]], fs, ["Initial signal", f"Final signal ({i})"]) 
+    for i, result in enumerate(results)
+]
 
 
-plt.imshow(np.abs(A_snapshots)**2, aspect="auto",
-           extent=[t[0], t[-1], z[-1], z[0]], cmap="inferno")
-plt.xlabel("Time [s]")
-plt.ylabel("Distance [km]")
-plt.title("Pulse evolution in fiber")
-plt.colorbar(label="|A|²")
-plt.show()
+# plt.imshow(np.abs(results[0])**2, aspect="auto",
+#            extent=[t[0], t[-1], z[-1], z[0]], cmap="inferno")
+# plt.xlabel("Time [s]")
+# plt.ylabel("Distance [km]")
+# plt.title("Pulse evolution in fiber")
+# plt.colorbar(label="|A|²")
+# plt.show()
