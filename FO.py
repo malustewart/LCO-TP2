@@ -26,7 +26,8 @@ def optical_fiber(
     beta_3: float = 0.0,    # Dispersión de tercer orden [ps³/km]
     gamma: float = 0.0,     # Coeficiente no lineal [(W·km)⁻¹]
     phi_max: float = 0.05,  # Máxima rotación de fase no lineal permitida [rad]
-) -> np.ndarray:
+    dz_save: float = 0.1,   # [km] interval at which to save intermediate results
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Wrapper para simular la propagación en fibra óptica monomodo usando SSFM adaptativo.
     
@@ -51,11 +52,16 @@ def optical_fiber(
         Coeficiente no lineal [(W·km)⁻¹].
     phi_max : float, optional
         Umbral para paso adaptativo [rad]. Reemplazar este argumento por el número de pasos en caso de optar por una implementación de paso fijo.
-        
+    dz_save : float
+        Intervalo [km] para guardar capturas de la señal.
     Returns
     -------
-    np.ndarray
+    A_out : np.ndarray
         Señal óptica de salida (array complejo).
+    A_evolution : np.ndarray
+        Array de shape (n_saves, n_samples) con las capturas de la señal a lo largo de la fibra.
+    z_positions : np.ndarray
+        Array de distancias [km] donde se guardaron las capturas.
     """
     
     # Paso 1: Convertir alpha a unidades neperianas (1/km)
@@ -75,6 +81,17 @@ def optical_fiber(
         h = phi_max/gamma/P_max
     
     h = min(h, length)  # Asegurar que h no exceda la longitud total
+
+    # Prealoco memoria para guardar capturas
+    z_positions = np.arange(0, length + 1e-12, dz_save) # sumo un epsilon a length porque el rango es no inclusivo al final
+    n_saves = len(z_positions)
+    n_samples = len(A)
+    A_evolution = np.zeros((n_saves, n_samples), dtype=np.complex128)
+    
+    # Guardo primer captura
+    A_evolution[0, :] = A
+    next_save_idx = 1
+
 
     # Inicializar posición actual
     steps = 0
@@ -104,6 +121,11 @@ def optical_fiber(
         # Paso 5.3: Operador N en h/2
         A = np.exp(N_op*h/2)*A
 
+        # Si corresponde, guardo captura
+        while next_save_idx < n_saves and z >= z_positions[next_save_idx]:
+            A_evolution[next_save_idx, :] = A
+            next_save_idx += 1
+
         progress_bar.update(100 * h / length) # ignorar esta linea..
 
         # Paso 5.4: Si se optó por la implementación adaptiva, calcular nueva h
@@ -120,15 +142,26 @@ def optical_fiber(
 
     progress_bar.close() # ignorar esta linea..
     
-    return A
+    return A, A_evolution, z_positions
 
 
 fs = 6000
 t = np.linspace(0, 1, fs, endpoint=False)
 A = np.exp(2j*np.pi*123*t) + 0.5*np.exp(2j*np.pi*300*t)
 
-B = optical_fiber(A, fs, 20, 0, 0, 0, 0, 0)
+A_final, A_snapshots, z = optical_fiber(A, fs, 0.2, alpha=20, beta_2=0, beta_3=0, gamma=0)
 
 plt.plot(t, A)
-plt.plot(t, B)
+plt.plot(t, A_final)
+plt.show()
+
+
+t = np.arange(A.size) / fs
+
+plt.imshow(np.abs(A_snapshots)**2, aspect="auto",
+           extent=[t[0], t[-1], z[-1], z[0]], cmap="inferno")
+plt.xlabel("Time [s]")
+plt.ylabel("Distance [km]")
+plt.title("Pulse evolution in fiber")
+plt.colorbar(label="|A|²")
 plt.show()
