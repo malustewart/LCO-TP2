@@ -12,8 +12,6 @@ def get_frequency(A, fs):
     f = f[pos_freqs]
     a = a[pos_freqs]
 
-    #todo: revisar como se calcula la frecuencia
-
     prom = 0.5 * np.max(a)
     peaks = find_peaks(a, prominence=prom)  # prominence evita detectar falsos picos por ruido en el espectro
 
@@ -27,13 +25,16 @@ def create_gaussian_pulse(std, length, fs):
     """
     n_samples = int(length * fs * 1e-12)
     std_in_samples = std * fs * 1e-12
+    length_in_s = length * 1e-12
 
-    t = np.linspace(0, length, n_samples)
+    t = np.linspace(0, length_in_s, n_samples)
 
     pulse = windows.gaussian(n_samples, std_in_samples)
 
     return pulse, t
 
+def modulate(modulator_A, modulator_t, f_carrier):
+    return modulator_A * np.exp(2j*np.pi*f_carrier*modulator_t)
 
 def optical_fiber(
     A: np.ndarray,          # Señal óptica de entrada (array complejo, shape: (n_samples,))
@@ -162,24 +163,54 @@ def optical_fiber(
     
     return A, A_evolution, z_positions
 
+import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_fft_signals(signals, fs, labels=None):
+    """
+        All elements in signal array must be of the same lengt
+    """
+    n = len(signals[0])
+    f = np.fft.fftfreq(n, d=1/fs)
+    f_shifted = np.fft.fftshift(f)
+    fft_signals = [np.fft.fftshift(np.fft.fft(sig)) for sig in signals]
+
+    # Create figure and axes objects
+    fig, (ax_amp, ax_phase) = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
+
+    # Plot amplitude
+    for i, fft_sig in enumerate(fft_signals):
+        label = labels[i] if labels is not None else f"Signal {i+1}"
+        ax_amp.plot(f_shifted, np.abs(fft_sig), label=label)
+        ax_phase.plot(f_shifted, np.angle(fft_sig), label=label)
+    ax_amp.set_title("Amplitude Spectrum")
+    ax_amp.set_ylabel("Amplitude")
+    ax_amp.grid(True)
+    ax_amp.legend()
+    ax_phase.set_title("Phase Spectrum")
+    ax_phase.set_xlabel("Frequency [Hz]")
+    ax_phase.set_ylabel("Phase [rad]")
+    ax_phase.grid(True)
+    ax_phase.legend()
+
+    plt.tight_layout()
+    plt.show()
+
 
 lambda_carrier = 1e-6
 
 f_carrier = 3e8 / lambda_carrier
-fs = 5 * f_carrier
+fs = 10 * f_carrier
 pulse_std = 10  # in ps
-A, t = create_gaussian_pulse(pulse_std, pulse_std*4, fs)
-
-A = A * np.exp(2j*np.pi*f_carrier*t)    # modulacion
-
-A_final, A_snapshots, z = optical_fiber(A, fs, 20, alpha=0.2, beta_2=-20, beta_3=5000, gamma=1.5)
-
-plt.plot(t, A)
-plt.plot(t, A_final)
-plt.show()
+length = pulse_std * 10 # in ps
+env, t = create_gaussian_pulse(pulse_std, pulse_std*10, fs)
+A0 = modulate(env, t, f_carrier)
 
 
-t = np.arange(A.size) / fs
+Af, A_snapshots, z = optical_fiber(A0, fs, 20, alpha=0.2, beta_2=-20, beta_3=5000, gamma=1.5)
+
+plot_fft_signals([A0, Af], fs)
+
 
 plt.imshow(np.abs(A_snapshots)**2, aspect="auto",
            extent=[t[0], t[-1], z[-1], z[0]], cmap="inferno")
