@@ -4,6 +4,7 @@ from scipy.signal import find_peaks, windows
 from tqdm.auto import tqdm
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 
 @dataclass
 class OpticalFiberSystem:
@@ -98,10 +99,10 @@ def optical_fiber(sys: OpticalFiberSystem, dz_save: float = 0.1) -> tuple[np.nda
     alpha_np = alpha * np.log(10) / 10
     
     # Paso 2: Calcular frecuencias angulares ω (en rad/ps)
-    w = get_frequency(A, fs) * 2 * np.pi
+    w = fftfreq(len(A), 1/fs) * 2 * np.pi * 1e-12
 
     # Paso 3: Operador lineal D en dominio de frecuencia
-    D_op = -alpha_np/2 + beta_2*w*w/2*1j + beta_3*w*w*w/6*1j
+    D_op = -alpha_np/2 + 1j*beta_2*w*w/2 + 1j*beta_3*w*w*w/6
     
     # Paso 4: Inicializar paso adaptativo h
     if gamma == 0 or (beta_2 == 0 and beta_3 == 0):
@@ -134,12 +135,12 @@ def optical_fiber(sys: OpticalFiberSystem, dz_save: float = 0.1) -> tuple[np.nda
     while z < length:
         z = prev_z + h
 
-        A_squared = abs(A*A)
+        A_squared = np.abs(A)**2
 
         progress_bar.set_postfix({"steps": steps, "z": z}) # ignorar esta linea..
 
         ## Implementar SSFM simétrico
-        N_op = gamma * (np.abs(A_squared)) * 1j
+        N_op = gamma * A_squared * 1j
         
         # Paso 5.1: Operador N en h/2
         A = np.exp(N_op*h/2)*A
@@ -197,7 +198,7 @@ def plot_signals(signals, fs, labels=None):
     fft_signals = [np.fft.fftshift(np.fft.fft(sig)) for sig in signals]
 
     # Create figure and axes objects
-    plt.figure()
+    # plt.figure()
     fig, (ax_amp, ax_phase) = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
 
     # Plot amplitude
@@ -217,16 +218,23 @@ def plot_signals(signals, fs, labels=None):
 
     plt.tight_layout()
 
-
+def plot_signal_timemap(signal_evolution, t, z, labels=None):
+    plt.figure()
+    plt.imshow(np.abs(signal_evolution)**2, aspect="auto",
+            extent=[t[0], t[-1], z[-1], z[0]], cmap="inferno", norm=LogNorm(vmin=np.min(np.abs(signal_evolution)**2), vmax=np.min(np.abs(signal_evolution)**2)))
+    plt.xlabel("Time [s]")
+    plt.ylabel("Distance [km]")
+    plt.title("Pulse evolution in fiber")
+    plt.colorbar(label="log10(|A|)")
 
 lambda_carrier = 1e-6
 
 f_carrier = 3e8 / lambda_carrier
 fs = 10 * f_carrier
 pulse_std = 10  # in ps
-length = pulse_std * 10 # in ps
-env, t = create_gaussian_pulse(pulse_std, pulse_std*10, fs)
-A0 = modulate(env, t, f_carrier)
+length = pulse_std * 15 # in ps
+env, t = create_gaussian_pulse(pulse_std, length, fs)
+A0 = modulate(env * 1000, t, f_carrier)
 
 
 systems = [
@@ -234,20 +242,11 @@ systems = [
     OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=-20, beta_3=0,    gamma=0),
     OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=0,   beta_3=0.15, gamma=0),
     OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=0,   beta_3=0,    gamma=1.5),
-    OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=-20, beta_3=0,    gamma=1.5),
+    # OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=-20, beta_3=0,    gamma=1.5),
 ]
 
 results = [optical_fiber(sys) for sys in systems]
-[
+for i, result in enumerate(results):
     plot_signals([A0, result[0]], fs, ["Initial signal", f"Final signal ({i})"]) 
-    for i, result in enumerate(results)
-]
-
-
-# plt.imshow(np.abs(results[0])**2, aspect="auto",
-#            extent=[t[0], t[-1], z[-1], z[0]], cmap="inferno")
-# plt.xlabel("Time [s]")
-# plt.ylabel("Distance [km]")
-# plt.title("Pulse evolution in fiber")
-# plt.colorbar(label="|A|²")
-# plt.show()
+    plot_signal_timemap(result[1], t, result[2])
+plt.show()
