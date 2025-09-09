@@ -30,21 +30,21 @@ def get_frequency(A, fs):
 
     return f[peaks[0][0]]
 
-def create_gaussian_pulse(std, length, fs):
+def create_gaussian_pulse(std, length, fs, amplitude):
     """
         std: std deviation in ps
         length: pulse length in ps
-        fs: sampling frequency, in Hz
+        fs: sampling frequency, in THz
     """
-    n_samples = int(length * fs * 1e-12)
-    std_in_samples = std * fs * 1e-12
-    length_in_s = length * 1e-12
+    n_samples = int(length * fs)
+    std_in_samples = std * fs
+    length_in_s = length
 
     t = np.linspace(0, length_in_s, n_samples)
 
     pulse = windows.gaussian(n_samples, std_in_samples)
 
-    return pulse, t
+    return amplitude * pulse, t
 
 def modulate(modulator_A, modulator_t, f_carrier):
     return modulator_A * np.exp(2j*np.pi*f_carrier*modulator_t)
@@ -99,7 +99,7 @@ def optical_fiber(sys: OpticalFiberSystem, dz_save: float = 0.1) -> tuple[np.nda
     alpha_np = alpha * np.log(10) / 10
     
     # Paso 2: Calcular frecuencias angulares ω (en rad/ps)
-    w = fftfreq(len(A), 1/fs) * 2 * np.pi * 1e-12
+    w = fftfreq(len(A), 1/fs) * 2 * np.pi
 
     # Paso 3: Operador lineal D en dominio de frecuencia
     D_op = -alpha_np/2 + 1j*beta_2*w*w/2 + 1j*beta_3*w*w*w/6
@@ -185,7 +185,7 @@ def plot_signals(signals, fs, labels=None):
     # Plot real part of signal
     for i, sig in enumerate(signals):
         label = labels[i] if labels is not None else f"Signal {i+1}"
-        plt.plot(1e12*t, np.real(sig), label=label)
+        plt.plot(t, np.abs(sig), label=label)
     plt.xlabel("Time [ps]")
     plt.ylabel("Amplitude")
     plt.grid(True)
@@ -221,28 +221,27 @@ def plot_signals(signals, fs, labels=None):
 def plot_signal_timemap(signal_evolution, t, z, labels=None):
     plt.figure()
     plt.imshow(np.abs(signal_evolution)**2, aspect="auto",
-            extent=[t[0], t[-1], z[-1], z[0]], cmap="inferno", norm=LogNorm(vmin=np.min(np.abs(signal_evolution)**2), vmax=np.min(np.abs(signal_evolution)**2)))
-    plt.xlabel("Time [s]")
+            extent=[t[0], t[-1], z[-1], z[0]], cmap="inferno", norm=LogNorm(vmin=0.00000000000001))
+    plt.xlabel("Time [ps]")
     plt.ylabel("Distance [km]")
     plt.title("Pulse evolution in fiber")
     plt.colorbar(label="log10(|A|)")
 
-lambda_carrier = 1e-6
 
-f_carrier = 3e8 / lambda_carrier
-fs = 10 * f_carrier
+N = 1000
 pulse_std = 10  # in ps
-length = pulse_std * 15 # in ps
-env, t = create_gaussian_pulse(pulse_std, length, fs)
-A0 = modulate(env * 1000, t, f_carrier)
-
+length = pulse_std * 100 # in ps
+dt = length / N
+fs = 1/dt # Thz
+amplitude = 1
+A0, t = create_gaussian_pulse(pulse_std, length, fs, amplitude)
 
 systems = [
     OpticalFiberSystem(A0, fs, length=20, alpha=0.2, beta_2=0,   beta_3=0,    gamma=0),
     OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=-20, beta_3=0,    gamma=0),
     OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=0,   beta_3=0.15, gamma=0),
     OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=0,   beta_3=0,    gamma=1.5),
-    # OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=-20, beta_3=0,    gamma=1.5),
+    OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=-20, beta_3=0,    gamma=1.5),
 ]
 
 results = [optical_fiber(sys) for sys in systems]
