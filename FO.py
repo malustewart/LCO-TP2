@@ -46,9 +46,6 @@ def create_gaussian_pulse(std, length, fs, amplitude):
 
     return amplitude * pulse, t
 
-def modulate(modulator_A, modulator_t, f_carrier):
-    return modulator_A * np.exp(2j*np.pi*f_carrier*modulator_t)
-
 def optical_fiber(sys: OpticalFiberSystem, dz_save: float = 0.1) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Wrapper para simular la propagación en fibra óptica monomodo usando SSFM adaptativo.
