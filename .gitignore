@@ -2,3 +2,4 @@ desktop.ini
 venv/
 *.pdf
 informe/
+__pycache__/
