@@ -28,12 +28,13 @@ def cw_laser(params: CWLaserParams) -> np.ndarray:
     """
     t = params.t
     P0 = params.P0
-    lw = params.lw
+    lw = params.lw * 1e-12  # THz
     rin = params.rin
-    df = params.df
+    df = params.df * 1e-12  # THz
 
-    dt = t[1] - t[0]
-    fs = 1/dt
+    dt = t[1] - t[0]    #ps
+    fs = 1/dt  # THz
+    print(fs)
 
     n_samples = len(t)
 
@@ -50,20 +51,14 @@ def cw_laser(params: CWLaserParams) -> np.ndarray:
 
     return Eout
 
-fs = 0.5  # THz
+fs = 10  # THz
 length = 1000 # ps
-P0 = 0 # dBm
-rin = -np.inf # dB
-df = 0 # Hz
-lw = 1000 # Hz
 t = np.linspace(0, length, int(length*fs))
 
 params_list = [
-    CWLaserParams(t=t, P0=0, rin=-np.inf, df=0, lw=10000),
-    CWLaserParams(t=t, P0=0, rin=-np.inf, df=10000, lw=0),
-    CWLaserParams(t=t, P0=0, rin=-np.inf, df=10000, lw=10000),
-    # CWLaserParams(t=t, P0=-3, rin=-100, df=2e6, lw=200),
-    # CWLaserParams(t=t, P0=5, rin=-90, df=0, lw=10000),
+    CWLaserParams(t=t, P0=1, rin=-np.inf, df=0, lw=0),
+    CWLaserParams(t=t, P0=1, rin=-np.inf, df=0, lw=100),
+    CWLaserParams(t=t, P0=1, rin=-np.inf, df=10, lw=0),
 ]
 
 Eouts = [cw_laser(params) for params in params_list]
