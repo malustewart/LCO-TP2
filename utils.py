@@ -1,5 +1,5 @@
-from scipy.fft import fft, ifft, fftfreq
-from scipy.signal import find_peaks, windows
+from scipy.fft import fft, ifft, fftfreq, fftshift
+from scipy.signal import find_peaks, windows, welch
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -65,7 +65,7 @@ def plot_signals(signals, fs, labels=None):
     for i, fft_sig in enumerate(fft_signals):
         label = labels[i] if labels is not None else f"Signal {i+1}"
         ax_amp.plot(f_shifted, np.abs(fft_sig), label=label)
-        ax_phase.plot(f_shifted, np.angle(fft_sig), label=label)
+        ax_phase.plot(f_shifted, np.unwrap(np.angle(fft_sig)), label=label)
     ax_amp.set_title("Amplitude Spectrum")
     ax_amp.set_ylabel("Amplitude")
     ax_amp.grid(True)
@@ -77,6 +77,24 @@ def plot_signals(signals, fs, labels=None):
     ax_phase.legend()
 
     plt.tight_layout()
+
+def plot_PSD(PSDs, labels=None):
+    # Create figure and axes objects
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    for i, PSD in enumerate(PSDs):
+        label = labels[i] if labels is not None else f"Signal {i+1}"
+        f = fftshift(PSD[0])
+        psd = fftshift(PSD[1])
+        ax.plot(f, np.abs(psd), label=label)
+        
+    ax.set_title("Power Spectral Density")
+    ax.set_ylabel("|PSD|")
+    ax.set_xlabel("Frequency [THz]")
+    ax.grid(True)
+    ax.legend()
+
+    fig.tight_layout()
 
 def plot_signal_timemap(signal_evolution, t, z, labels=None):
     plt.figure()
