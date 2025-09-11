@@ -40,20 +40,19 @@ def plot_signals(signals, fs, labels=None):
     n = len(signals[0])
     t = np.arange(n) / fs  # in ps
 
-    ###### in time (Real part) #######
+    ###### in time (absolute) #######
     plt.figure(figsize=(10,4))
-    # Plot real part of signal
     for i, sig in enumerate(signals):
         label = labels[i] if labels is not None else f"Signal {i+1}"
         plt.plot(t, np.abs(sig), label=label)
     plt.xlabel("Time [ps]")
     plt.ylabel("Amplitude")
     plt.grid(True)
-    plt.legend()
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2)
     plt.tight_layout()
 
     ###### in frequency #######
-    f = np.fft.fftfreq(n, d=1/fs) / 1e12 # Thz
+    f = np.fft.fftfreq(n, d=1/fs)
     f_shifted = np.fft.fftshift(f)
     fft_signals = [np.fft.fftshift(np.fft.fft(sig)) for sig in signals]
 
@@ -69,30 +68,27 @@ def plot_signals(signals, fs, labels=None):
     ax_amp.set_title("Amplitude Spectrum")
     ax_amp.set_ylabel("Amplitude")
     ax_amp.grid(True)
-    ax_amp.legend()
     ax_phase.set_title("Phase Spectrum")
     ax_phase.set_xlabel("Frequency [THz]")
     ax_phase.set_ylabel("Phase [rad]")
     ax_phase.grid(True)
-    ax_phase.legend()
+    ax_phase.legend(loc='upper center', bbox_to_anchor=(0.5, -0.25), ncol=2)
 
     plt.tight_layout()
 
 def plot_PSD(PSDs, labels=None):
-    # Create figure and axes objects
     fig, ax = plt.subplots(figsize=(10, 6))
 
     for i, PSD in enumerate(PSDs):
         label = labels[i] if labels is not None else f"Signal {i+1}"
         f = fftshift(PSD[0])
         psd = fftshift(PSD[1])
-        ax.plot(f, np.abs(psd), label=label)
-        
+        ax.semilogy(f, np.abs(psd) + 1e-20, label=label)  # log scale, avoid log(0)
     ax.set_title("Power Spectral Density")
     ax.set_ylabel("|PSD|")
     ax.set_xlabel("Frequency [THz]")
-    ax.grid(True)
-    ax.legend()
+    ax.grid(True, which="both")
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2)
 
     fig.tight_layout()
 

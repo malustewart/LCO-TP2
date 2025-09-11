@@ -9,8 +9,9 @@ class CWLaserParams:
     t: np.ndarray
     P0: float
     lw: float = 0.0 # Hz
-    rin: float = -np.inf
+    rin: float = -np.inf # dB/Hz
     df: float = 0.0 # Hz
+    name: str = ""  # Custom name for each test case
 
 def cw_laser(params: CWLaserParams) -> np.ndarray:
     r"""
@@ -50,29 +51,38 @@ def cw_laser(params: CWLaserParams) -> np.ndarray:
 
     return Eout
 
-fs = 10  # THz
-length = 10000 # ps
-t = np.linspace(0, length, int(length*fs))
 
-params_list = [
-    CWLaserParams(t=t, P0=1, rin=-140, df=0, lw=1e6),
-    CWLaserParams(t=t, P0=1, rin=-140, df=0, lw=1),
-    CWLaserParams(t=t, P0=1, rin=-140, df=0, lw=0.00001),
-    CWLaserParams(t=t, P0=1, rin=-140, df=1, lw=0.00001),
-    # CWLaserParams(t=t, P0=1, rin=-np.inf, df=1000, lw=0),
-    # CWLaserParams(t=t, P0=1, rin=-np.inf, df=1000, lw=1000),
-]
+if __name__ == "__main__":
+    fs = 10  # THz
+    length = 10000 # ps
+    t = np.linspace(0, length, int(length*fs))
 
-labels = [
-    f"P0={params.P0} dBm, RIN={params.rin} dB/Hz, df={params.df} Hz, lw={params.lw} Hz"
-    for params in params_list
-]
-
-Eouts = [cw_laser(params) for params in params_list]
-PSDs = [signal.welch(Eout, return_onesided=False, fs=fs) for Eout in Eouts]
+    RINs = [-np.inf, -140, -120, -100]  # dB/Hz
+    lws = [0, 1e3, 1e6, 1e9]  # Hz
+    dfs = [0, 1, 100, 1000]  # Hz
 
 
-plot_signals(Eouts, fs, labels)
-plot_PSD(PSDs, labels)
+    params_lists = [[   # Punto b
+        CWLaserParams(t=t, P0=1, rin=-140, df=0, lw=1e6, name="B real "),
+        CWLaserParams(t=t, P0=1, rin=-np.inf, df=0, lw=0, name="B ideal"),
+    ], [
+        CWLaserParams(t=t, P0=1, rin=-np.inf, df=0, lw=lw, name=f"LW={lw}") for lw in lws
+    ], [
+        CWLaserParams(t=t, P0=1, rin=rin, df=0, lw=0, name=f"RIN={rin}") for rin in RINs
+    ], [
+        CWLaserParams(t=t, P0=1, rin=-140, df=df, lw=1e3, name=f"df={df}") for df in dfs
+    ],
+    ]
+    for params_list in params_lists:
+        labels = [
+            f"{params.name}: P0={params.P0} dBm, RIN={params.rin} dB/Hz, df={params.df} Hz, lw={params.lw} Hz"
+            for params in params_list
+        ]
 
-show_plots()
+        Eouts = [cw_laser(params) for params in params_list]
+        PSDs = [signal.welch(Eout, return_onesided=False, fs=fs) for Eout in Eouts]
+
+        plot_signals(Eouts, fs, labels)
+        plot_PSD(PSDs, labels)
+
+    show_plots()
