@@ -33,6 +33,20 @@ def create_gaussian_pulse(std, length, fs, amplitude):
 
     return amplitude * pulse, t
 
+def create_nrz_signal(bit_rate, length, fs, amplitude):
+    """
+        bit_rate: Gbps
+        length: signal length in ps
+        fs: THz
+    """
+    n_samples = int(length * fs)
+    samples_per_bit = int(fs / (bit_rate * 1e-3))
+    n_bits = int(n_samples / samples_per_bit) + 1
+    bits = np.random.randint(0, 2, n_bits)
+    signal = np.repeat(bits, samples_per_bit)[:n_samples]
+
+    return amplitude * signal, np.linspace(0, length, n_samples) / fs
+
 def plot_signals(signals, fs, labels=None):
     """
         All elements in signal array must be of the same lengt
@@ -74,6 +88,25 @@ def plot_signals(signals, fs, labels=None):
     ax_phase.grid(True)
     ax_phase.legend(loc='upper center', bbox_to_anchor=(0.5, -0.25), ncol=2)
 
+    plt.tight_layout()
+
+def plot_MZM(E_out, E_in, u, Vpi, Vbias):
+    trans = E_out / E_in
+    plt.figure(figsize=(10, 4))
+    plt.plot(u, np.abs(trans), label="E_out / E_in")
+    plt.plot(u, np.abs(trans**2), label="P_out / P_in")
+    plt.xlabel("u [V]")
+    plt.title("MZM Modulation")
+    plt.grid(True)
+    # Plot vertical line where u + Vbias = Vpi
+    u_min = np.min(u + Vbias)
+    u_max = np.max(u + Vbias)
+    n_min = int(np.floor(u_min / Vpi))
+    n_max = int(np.ceil(u_max / Vpi))
+    for n in range(n_min, n_max + 1):
+        x = n * Vpi - Vbias
+        plt.axvline(x, color='r', linestyle='--', alpha=0.7, label=f"n·Vpi - Vbias" if n == 1 else None)    
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=3)
     plt.tight_layout()
 
 def plot_PSD(PSDs, labels=None):
