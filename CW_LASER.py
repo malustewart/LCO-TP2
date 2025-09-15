@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as signal
+import scipy.fft as fft
 from utils import plot_signals, plot_PSD, show_plots
 from dataclasses import dataclass
 
@@ -53,23 +54,27 @@ def cw_laser(params: CWLaserParams) -> np.ndarray:
 
 
 if __name__ == "__main__":
-    fs = 10  # THz
-    length = 10000 # ps
+    fs = 1  # THz
+    length = 2**16 # ps
     t = np.linspace(0, length, int(length*fs))
 
     RINs = [-np.inf, -140, -120, -100]  # dB/Hz
-    lws = [0, 1e3, 1e6, 1e9]  # Hz
-    dfs = [0, 1, 100, 1000]  # Hz
+    lws = [0, 100e6, 1e9]  # Hz
+    dfs = [0, 1e3, 1e6, 1e9]  # Hz
 
 
-    params_lists = [[   # Punto b
-        CWLaserParams(t=t, P0=1, rin=-140, df=0, lw=1e6, name="B real "),
-        CWLaserParams(t=t, P0=1, rin=-np.inf, df=0, lw=0, name="B ideal"),
-    ], [
+    params_lists = [
+    # [   # Punto b
+    #     CWLaserParams(t=t, P0=1, rin=-140, df=0, lw=1e6, name="B real "),
+    #     CWLaserParams(t=t, P0=1, rin=-np.inf, df=0, lw=0, name="B ideal"),
+    # ], 
+    [
         CWLaserParams(t=t, P0=1, rin=-np.inf, df=0, lw=lw, name=f"LW={lw}") for lw in lws
-    ], [
-        CWLaserParams(t=t, P0=1, rin=rin, df=0, lw=0, name=f"RIN={rin}") for rin in RINs
-    ], [
+    ], 
+    # [
+    #     CWLaserParams(t=t, P0=1, rin=rin, df=0, lw=0, name=f"RIN={rin}") for rin in RINs
+    # ], 
+    [
         CWLaserParams(t=t, P0=1, rin=-140, df=df, lw=1e3, name=f"df={df}") for df in dfs
     ],
     ]
@@ -80,7 +85,11 @@ if __name__ == "__main__":
         ]
 
         Eouts = [cw_laser(params) for params in params_list]
-        PSDs = [signal.welch(Eout, return_onesided=False, fs=fs) for Eout in Eouts]
+        PSDs = [signal.welch(Eout, return_onesided=False, fs=fs, detrend=False, nperseg=2**13, scaling='density') for Eout in Eouts]
+
+        print(np.sum(np.abs(fft.fft(Eouts[0]))**2)/len(Eouts[0]))
+        print(np.sum(np.abs(fft.fft(Eouts[1]))**2)/len(Eouts[1]))
+        print(np.sum(np.abs(fft.fft(Eouts[2]))**2)/len(Eouts[2]))
 
         plot_signals(Eouts, fs, labels)
         plot_PSD(PSDs, labels)
