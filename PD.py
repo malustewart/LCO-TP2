@@ -14,6 +14,9 @@ class PdSystem:
     Rf: float = 50.0    # Resistencia de carga del detector en [Ohms]
     i_d: float = 10e-9  # Corriente oscura del fotodetector en [A]
     Fn: float = 0.0     # Figura de ruido del amplificador de transimpedancia, en [dB]
+    disable_shot_noise: bool = False  # Deshabilitar ruido de disparo
+    name: str = ""
+
 
 def pd(params: PdSystem) -> np.ndarray:
     """
@@ -29,7 +32,7 @@ def pd(params: PdSystem) -> np.ndarray:
     v : np.array
         La señal eléctrica detectada, en [v].
     """
-    Ein, B, fs, r, T, Rf, i_d, Fn = params.Ein, params.B, params.fs, params.r, params.T, params.Rf, params.i_d, params.Fn
+    Ein, B, fs, r, T, Rf, i_d, Fn, disable_shot_noise = params.Ein, params.B, params.fs, params.r, params.T, params.Rf, params.i_d, params.Fn, params.disable_shot_noise
     n_samples = len(Ein)
 
     # Definición del filtro pasa bajos del fotodetector
@@ -37,7 +40,7 @@ def pd(params: PdSystem) -> np.ndarray:
 
     i_s = r * np.real(Ein)**2
 
-    var_sh = sc.e * (i_s + i_d)*fs
+    var_sh = 0 if disable_shot_noise else sc.e * (i_s + i_d)*fs
     i_sh = np.random.normal(0, np.sqrt(var_sh), n_samples)
     var_th = 2*sc.k*T*Fn*fs/Rf
     i_th = np.random.normal(0, np.sqrt(var_th), n_samples)
@@ -49,22 +52,13 @@ def pd(params: PdSystem) -> np.ndarray:
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-
-    # fs = 20e9
-    # B = 5e9
-    # t = np.arange(0, 1e-6, 1/fs)
-    # f = 1e9
-    # P_dbm = -20
-    # r = 0.8
-    # i_d = 1e-9
-    # Rf = 50
-    # T = 300
+    from utils import plot_signals, show_plots
 
     fs = 20e9
     B = 5e9
-    t = np.arange(0, 10e-9, 1/fs)
     f = 1e9
-    P_dbm = 20
+    t = np.arange(0, 4/f, 1/fs) # 4 periods
+    P_dbm = -20
     r = 0.8
     i_d = 1e-9
     Rf = 50
@@ -73,14 +67,15 @@ if __name__ == "__main__":
     P = 10**(P_dbm/10) / 1000
     Ein = np.sqrt(P) * np.exp(1j*2*np.pi*f*t)
 
-    s = PdSystem(Ein, B=B, fs=fs, r=r, i_d=i_d, T=T, Rf=Rf)
+    systems =  [
+        PdSystem(Ein, B=B, fs=fs, r=r, i_d=i_d, T=T, Rf=Rf, disable_shot_noise=False, name="Ruido térmico, disparo, y oscuridad"),
+        PdSystem(Ein, B=B, fs=fs, r=r, i_d=i_d, T=T, Rf=Rf, disable_shot_noise=True,  name="Ruido térmico y oscuridad"),
+        PdSystem(Ein, B=B, fs=fs, r=r, i_d=i_d, T=0, Rf=Rf, disable_shot_noise=False, name="Ruido de disparo y oscuridad"),
+        PdSystem(Ein, B=B, fs=fs, r=r, i_d=0,   T=0, Rf=Rf, disable_shot_noise=True,  name="Sin ruido"),
+    ]
 
-    v = pd(s)
+    out = [pd(s) for s in systems]
+    labels = [s.name for s in systems]
+    plot_signals(out, fs*1e-12, labels=labels)  # fs en THz
 
-    plt.figure()
-    plt.plot(t*fs, v)
-    # plt.xlim(0, 2/f*fs)
-    plt.xlabel("Time [ns]")
-    plt.ylabel("Voltage [V]")
-    plt.grid()
-    plt.show()
+    show_plots()
