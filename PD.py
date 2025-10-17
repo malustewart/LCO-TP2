@@ -35,7 +35,7 @@ def pd(params: PdSystem) -> np.ndarray:
     # Definición del filtro pasa bajos del fotodetector
     sos = sg.bessel(N=5, Wn=2*B/fs, btype="low", output="sos", norm="mag")
 
-    i_s = r * np.abs(Ein)**2
+    i_s = r * np.real(Ein)**2
 
     var_sh = sc.e * (i_s + i_d)*fs
     i_sh = np.random.normal(0, np.sqrt(var_sh), n_samples)
