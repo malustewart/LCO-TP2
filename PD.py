@@ -17,6 +17,33 @@ class PdSystem:
     disable_shot_noise: bool = False  # Deshabilitar ruido de disparo
     name: str = ""
 
+def calc_expected_SNR(Pin, r, B, T, Rf, i_d, Fn):
+    """
+    Calcula la SNR esperada en un fotodetector PIN con ruido térmico, de disparo, y de oscuridad.
+
+    Parameters
+    ----------
+    Pin : float
+        Potencia óptica de entrada en [W].
+    r : float
+        Responsividad del detector en [A/W].
+    B : float
+        Ancho de banda del detector en [Hz].
+    T : float
+        Temperatura del detector en [K].
+    Rf : float
+        Resistencia de carga del detector en [Ohms].
+    i_d : float
+        Corriente oscura del fotodetector en [A].
+
+    Returns
+    -------
+    SNR : float
+        SNR esperada.
+    """
+    SNR = ((r * Pin)**2) / (4*sc.k*T*B/Rf + 2*sc.e*(r*Pin + i_d)*B) 
+    return SNR
+
 
 def pd(params: PdSystem) -> np.ndarray:
     """
@@ -54,6 +81,8 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     from utils import plot_signals, show_plots
 
+    np.random.seed(12345)
+
     fs = 20e9
     B = 5e9
     f = 1e9
@@ -76,6 +105,7 @@ if __name__ == "__main__":
 
     out = [pd(s) for s in systems]
     labels = [s.name for s in systems]
+    # todo: plotear en dB el espectro de potencia
     plot_signals(out, fs*1e-12, labels=labels)  # fs en THz
 
     show_plots()
