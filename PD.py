@@ -13,7 +13,7 @@ class PdSystem:
     T: float = 300.0    # Temperatura del detector en [K]
     Rf: float = 50.0    # Resistencia de carga del detector en [Ohms]
     i_d: float = 10e-9  # Corriente oscura del fotodetector en [A]
-    Fn: float = 0.0     # Figura de ruido del amplificador de transimpedancia, en [dB]
+    Fn_dB: float = 0.0  # Figura de ruido del amplificador de transimpedancia, en [dB]
     disable_shot_noise: bool = False  # Deshabilitar ruido de disparo
     name: str = ""
 
@@ -89,9 +89,9 @@ def pd(params: PdSystem) -> np.ndarray:
     v : np.array
         La señal eléctrica detectada, en [v].
     """
-    Ein, B, fs, r, T, Rf, i_d, Fn, disable_shot_noise = params.Ein, params.B, params.fs, params.r, params.T, params.Rf, params.i_d, params.Fn, params.disable_shot_noise
+    Ein, B, fs, r, T, Rf, i_d, Fn_dB, disable_shot_noise = params.Ein, params.B, params.fs, params.r, params.T, params.Rf, params.i_d, params.Fn_dB, params.disable_shot_noise
     n_samples = len(Ein)
-
+    Fn = 10**(Fn_dB/10)
     # Definición del filtro pasa bajos del fotodetector
     sos = sg.bessel(N=5, Wn=2*B/fs, btype="low", output="sos", norm="mag")
 
