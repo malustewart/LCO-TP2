@@ -17,7 +17,28 @@ class PdSystem:
     disable_shot_noise: bool = False  # Deshabilitar ruido de disparo
     name: str = ""
 
-def calc_expected_SNR(Pin, r, B, T, Rf, i_d, Fn):
+def calc_real_SNR(v_signal: np.ndarray, v_noise: np.ndarray) -> float:
+    """
+    Calcula la SNR real a partir de la señal y el ruido medidos.
+
+    Parameters
+    ----------
+    v_signal : np.ndarray
+        Señal eléctrica detectada sin ruido, en [v].
+    v_noise : np.ndarray
+        Señal de ruido eléctrico detectada, en [v].
+
+    Returns
+    -------
+    SNR : float
+        SNR real calculada, en veces.
+    """
+    P_signal = np.sum(v_signal**2)
+    P_noise = np.sum(v_noise**2)
+    SNR_dB = 10*np.log10(P_signal / P_noise)
+    return SNR_dB
+
+def calc_expected_SNR(Pin, r, B, T, Rf, i_d):
     """
     Calcula la SNR esperada en un fotodetector PIN con ruido térmico, de disparo, y de oscuridad.
 
@@ -38,11 +59,12 @@ def calc_expected_SNR(Pin, r, B, T, Rf, i_d, Fn):
 
     Returns
     -------
-    SNR : float
-        SNR esperada.
+    SNR_dB : float
+        SNR esperada en db.
     """
     SNR = ((r * Pin)**2) / (4*sc.k*T*B/Rf + 2*sc.e*(r*Pin + i_d)*B) 
-    return SNR
+    SNR_dB = 10 * np.log10(SNR)
+    return SNR_dB
 
 
 def pd(params: PdSystem) -> np.ndarray:
@@ -72,13 +94,15 @@ def pd(params: PdSystem) -> np.ndarray:
     var_th = 2*sc.k*T*Fn*fs/Rf
     i_th = np.random.normal(0, np.sqrt(var_th), n_samples)
     
-    i = i_s + i_d + i_sh + i_th
+    v_signal = sg.sosfiltfilt(sos, i_s) * Rf  # Voltage signal without noise
+    v_noise = sg.sosfiltfilt(sos, i_d + i_sh + i_th) * Rf  # Noise voltage signal
+    v_out = v_signal + v_noise
 
-    v_out = sg.sosfiltfilt(sos, i) * Rf  # Voltage signal
-    return v_out
+    SNR_dB = calc_real_SNR(v_signal, v_noise)
+
+    return v_out, SNR_dB
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
     from utils import plot_signals, show_plots
 
     np.random.seed(12345)
@@ -104,8 +128,12 @@ if __name__ == "__main__":
     ]
 
     out = [pd(s) for s in systems]
-    labels = [s.name for s in systems]
+    signals = [o[0] for o in out]
+    SNRs_dB_sim = [o[1] for o in out]
+
+    SNRs_dB_calc = [calc_expected_SNR(P, s.r, s.B, s.T, s.Rf, s.i_d) for s in systems]
+    labels = [f"{s.name} (SNR sim: {SNR_dB_sim:.2f}dB - SNR calc: {SNR_dB_calc:.2f}dB)" for s, SNR_dB_sim, SNR_dB_calc in zip(systems, SNRs_dB_sim, SNRs_dB_calc)]
     # todo: plotear en dB el espectro de potencia
-    plot_signals(out, fs*1e-12, labels=labels)  # fs en THz
+    plot_signals(signals, fs*1e-12, labels=labels)  # fs en THz
 
     show_plots()
