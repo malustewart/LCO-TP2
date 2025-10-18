@@ -38,7 +38,7 @@ def calc_real_SNR(v_signal: np.ndarray, v_noise: np.ndarray) -> float:
     SNR_dB = 10*np.log10(P_signal / P_noise)
     return SNR_dB
 
-def calc_expected_SNR(Pin, r, B, T, Rf, i_d):
+def calc_expected_SNR(Pin, r, B, T, Rf, i_d, disable_shot_noise) -> float :
     """
     Calcula la SNR esperada en un fotodetector PIN con ruido térmico, de disparo, y de oscuridad.
 
@@ -62,7 +62,15 @@ def calc_expected_SNR(Pin, r, B, T, Rf, i_d):
     SNR_dB : float
         SNR esperada en db.
     """
-    SNR = ((r * Pin)**2) / (4*sc.k*T*B/Rf + 2*sc.e*(r*Pin + i_d)*B) 
+    P_signal = (r * Pin)**2
+    P_noise = 4*sc.k*T*B/Rf
+    if not disable_shot_noise:
+        P_noise += 2*sc.e*(r*Pin + i_d)*B
+    
+    if P_noise == 0:
+        return np.inf
+    
+    SNR = P_signal / P_noise
     SNR_dB = 10 * np.log10(SNR)
     return SNR_dB
 
@@ -131,7 +139,7 @@ if __name__ == "__main__":
     signals = [o[0] for o in out]
     SNRs_dB_sim = [o[1] for o in out]
 
-    SNRs_dB_calc = [calc_expected_SNR(P, s.r, s.B, s.T, s.Rf, s.i_d) for s in systems]
+    SNRs_dB_calc = [calc_expected_SNR(P, s.r, s.B, s.T, s.Rf, s.i_d, s.disable_shot_noise) for s in systems]
     labels = [f"{s.name} (SNR sim: {SNR_dB_sim:.2f}dB - SNR calc: {SNR_dB_calc:.2f}dB)" for s, SNR_dB_sim, SNR_dB_calc in zip(systems, SNRs_dB_sim, SNRs_dB_calc)]
     # todo: plotear en dB el espectro de potencia
     plot_signals(signals, fs*1e-12, labels=labels)  # fs en THz
