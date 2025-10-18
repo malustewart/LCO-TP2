@@ -118,7 +118,7 @@ if __name__ == "__main__":
     T = 300
 
     P = 10**(P_dbm/10) / 1000
-    Ein = np.sqrt(P) * np.exp(1j*2*np.pi*f*t)
+    Ein = np.sqrt(P * np.exp(1j*2*np.pi*f*t) )
 
     systems =  [
         PdSystem(Ein, B=B, fs=fs, r=r, i_d=i_d, T=T, Rf=Rf, disable_shot_noise=False, name="Ruido térmico, disparo, y oscuridad"),
