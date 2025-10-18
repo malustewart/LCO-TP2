@@ -35,6 +35,10 @@ def calc_real_SNR(v_signal: np.ndarray, v_noise: np.ndarray) -> float:
     """
     P_signal = np.sum(v_signal**2)
     P_noise = np.sum(v_noise**2)
+
+    if P_noise == 0:
+        return np.inf
+
     SNR_dB = 10*np.log10(P_signal / P_noise)
     return SNR_dB
 
