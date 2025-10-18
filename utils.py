@@ -77,7 +77,7 @@ def plot_signals(signals, fs, labels=None):
     # Plot amplitude
     for i, fft_sig in enumerate(fft_signals):
         label = labels[i] if labels is not None else f"Signal {i+1}"
-        ax_amp.plot(f_shifted, np.abs(fft_sig), label=label)
+        ax_amp.plot(f_shifted, 20*np.log10(np.abs(fft_sig)), label=label)
         ax_phase.plot(f_shifted, np.unwrap(np.angle(fft_sig)), label=label)
     ax_amp.set_title("Amplitude Spectrum")
     ax_amp.set_ylabel("Amplitude")
