@@ -129,6 +129,8 @@ if __name__ == "__main__":
     Rf = 50
     T = 300
 
+    # Ejercicio B
+
     P = 10**(P_dbm/10) / 1000
     Ein = np.sqrt(P * np.exp(1j*2*np.pi*f*t) )
 
@@ -145,7 +147,24 @@ if __name__ == "__main__":
 
     SNRs_dB_calc = [calc_expected_SNR(P, s.r, s.B, s.T, s.Rf, s.i_d, s.disable_shot_noise) for s in systems]
     labels = [f"{s.name} (SNR sim: {SNR_dB_sim:.2f}dB - SNR calc: {SNR_dB_calc:.2f}dB)" for s, SNR_dB_sim, SNR_dB_calc in zip(systems, SNRs_dB_sim, SNRs_dB_calc)]
-    # todo: plotear en dB el espectro de potencia
     plot_signals(signals, fs*1e-12, labels=labels)  # fs en THz
+
+    # Ejercicio C
+
+    Ps_dbm = range(-40, 60, 5)
+    Ps = [10**(P_dbm/10) / 1000 for P_dbm in Ps_dbm]
+
+    out_C = [pd(PdSystem(Ein=np.sqrt(P * np.exp(1j*2*np.pi*f*t)), B=B, fs=fs, r=r, i_d=i_d, T=T, Rf=Rf, disable_shot_noise=False)) for P in Ps]
+    SNRs_dB_sim_C = [o[1] for o in out_C]
+    SNRs_dB_calc_C = [calc_expected_SNR(P, r, B, T, Rf, i_d, disable_shot_noise=False) for P in Ps]
+
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.plot(Ps_dbm, SNRs_dB_sim_C, 'o-', label="SNR Simulada")
+    plt.plot(Ps_dbm, SNRs_dB_calc_C, 's--', label="SNR Calculada")
+    plt.xlabel("Potencia óptica de entrada [dbm]")
+    plt.ylabel("SNR [dB]")
+    plt.grid(True)
+    plt.legend()
 
     show_plots()
