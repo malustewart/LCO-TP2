@@ -3,3 +3,4 @@ venv/
 *.pdf
 informe/
 __pycache__/
+figs/*
