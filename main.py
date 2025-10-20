@@ -22,13 +22,12 @@ def generate_signal(bits, sps, modulation=Modulation.NRZ):
     raise ValueError("Unknown modulation type.")
 
 
-def ej_1(n_bits=5000, bitrate=10e9, sps=16, P_dbm=10, RIN_db=-150, df=10e6, Vpi=5, r=1, T=300, Rl=50, Vbias = -2.5, Vpp_over_Vpi=[1.2, 1.0, 0.8, 0.5], K=0.8, ER_db=30):
+def ej_1(n_bits=5000, bitrate=10e9, sps=16, P_dbm=-10, RIN_db=-150, df=10e6, Vpi=5, r=1, T=300, Rl=50, Vbias = -2.5, Vpp_over_Vpi=[1.2, 1.0, 0.8, 0.5], K=0.8, ER_db=30):
     # laser
     n_samples = n_bits * sps
     fs = bitrate * sps
     t = np.arange(n_samples) / fs
-    P0 = 10 ** (P_dbm / 10) / 1e3
-    laser_system = laser.CWLaserParams(t, P0=P0, rin=RIN_db, df=df, lw=0)
+    laser_system = laser.CWLaserParams(t, P0=P_dbm, rin=RIN_db, df=df, lw=0)
     laser_out = laser.cw_laser(laser_system)
 
     # MZM
@@ -66,15 +65,12 @@ def ej_1(n_bits=5000, bitrate=10e9, sps=16, P_dbm=10, RIN_db=-150, df=10e6, Vpi=
     plot_MZM(E_out, E_in, u, Vpi, Vbias)
     plt.savefig('figs/ej1_mzm_transfer_function.svg')
 
-    return bits
-
 def ej_2(n_bits=5000, bitrate=10e9, sps=16, P_dbm=10, RIN_db=-150, df=10e6, Vpi=5, r=1, T=300, Rl=50, Vbias = -2.5, Vpp_over_Vpi=1.0, K=0.8, ER_db=30, L=[0, 40, 60, 80, 100], beta_2=-20, beta_3=0.1, gamma=0, alpha_of_db=0.4):
     # laser
     n_samples = n_bits * sps
     fs = bitrate * sps
     t = np.arange(n_samples) / fs
-    P0 = 10 ** (P_dbm / 10) / 1e3
-    laser_system = laser.CWLaserParams(t, P0=P0, rin=RIN_db, df=df, lw=0)
+    laser_system = laser.CWLaserParams(t, P0=P_dbm, rin=RIN_db, df=df, lw=0)
     laser_out = laser.cw_laser(laser_system)
 
     # MZM
