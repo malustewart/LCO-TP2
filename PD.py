@@ -115,7 +115,7 @@ def pd(params: PdSystem) -> np.ndarray:
     return v_out, SNR_dB
 
 if __name__ == "__main__":
-    from utils import plot_signals, show_plots
+    from utils import plot_signals, show_plots, plot_SNR_vs_P
 
     np.random.seed(12345)
 
@@ -158,13 +158,7 @@ if __name__ == "__main__":
     SNRs_dB_sim_C = [o[1] for o in out_C]
     SNRs_dB_calc_C = [calc_expected_SNR(P, r, B, T, Rf, i_d, disable_shot_noise=False) for P in Ps]
 
-    import matplotlib.pyplot as plt
-    plt.figure()
-    plt.plot(Ps_dbm, SNRs_dB_sim_C, 'o-', label="SNR Simulada")
-    plt.plot(Ps_dbm, SNRs_dB_calc_C, 's--', label="SNR Calculada")
-    plt.xlabel("Potencia óptica de entrada [dbm]")
-    plt.ylabel("SNR [dB]")
-    plt.grid(True)
-    plt.legend()
+    Pin_limit = -(i_d/r + 2 * sc.k * T / (sc.e * r * Rf))
+    plot_SNR_vs_P(Ps_dbm, SNRs_dB_sim_C, SNRs_dB_calc_C)
 
     show_plots()

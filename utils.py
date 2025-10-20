@@ -136,3 +136,13 @@ def plot_signal_timemap(signal_evolution, t, z, labels=None):
 
 def show_plots():
     plt.show()
+
+
+def plot_SNR_vs_P(Ps_dbm, SNRs_dB_sim, SNRs_dB_calc):
+    plt.figure()
+    plt.plot(Ps_dbm, SNRs_dB_sim, 'o-', label="SNR Simulada")
+    plt.plot(Ps_dbm, SNRs_dB_calc, 's--', label="SNR Calculada")
+    plt.xlabel("Potencia óptica de entrada [dbm]")
+    plt.ylabel("SNR [dB]")
+    plt.grid(True)
+    plt.legend()
