@@ -140,25 +140,27 @@ def optical_fiber(sys: OpticalFiberSystem, dz_save: float = 0.1) -> tuple[np.nda
     
     return A, A_evolution, z_positions
 
-N = 1000
-pulse_std = 10  # in ps
-length = pulse_std * 100 # in ps
-dt = length / N
-fs = 1/dt # Thz
-amplitude = 1
-A0, t = create_gaussian_pulse(pulse_std, length, fs, amplitude)
+if __name__ == "__main__":
 
-systems = [
-    OpticalFiberSystem(A0, fs, length=20, alpha=0.2, beta_2=0,   beta_3=0,    gamma=0),
-    OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=-20, beta_3=0,    gamma=0),
-    OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=0,   beta_3=0.15, gamma=0),
-    OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=0,   beta_3=0,    gamma=1.5),
-    OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=-20, beta_3=0,    gamma=1.5),
-]
+    N = 1000
+    pulse_std = 10  # in ps
+    length = pulse_std * 100 # in ps
+    dt = length / N
+    fs = 1/dt # Thz
+    amplitude = 1
+    A0, t = create_gaussian_pulse(pulse_std, length, fs, amplitude)
 
-for i, sys in enumerate(systems):
-    result = optical_fiber(sys)
-    plot_signals([A0, result[0]], fs, ["Initial signal", f"Final signal ({i})"]) 
-    plot_signal_timemap(result[1], t, result[2])
+    systems = [
+        OpticalFiberSystem(A0, fs, length=20, alpha=0.2, beta_2=0,   beta_3=0,    gamma=0),
+        OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=-20, beta_3=0,    gamma=0),
+        OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=0,   beta_3=0.15, gamma=0),
+        OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=0,   beta_3=0,    gamma=1.5),
+        OpticalFiberSystem(A0, fs, length=20, alpha=0,   beta_2=-20, beta_3=0,    gamma=1.5),
+    ]
 
-show_plots()
+    for i, sys in enumerate(systems):
+        result = optical_fiber(sys)
+        plot_signals([A0, result[0]], fs, ["Initial signal", f"Final signal ({i})"]) 
+        plot_signal_timemap(result[1], t, result[2])
+
+    show_plots()
