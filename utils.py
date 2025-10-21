@@ -47,7 +47,7 @@ def create_nrz_signal(bit_rate, length, fs, amplitude):
 
     return amplitude * signal, np.linspace(0, length, n_samples) / fs
 
-def plot_signals(signals, fs, labels=None):
+def plot_signals(signals, fs, labels=None, is_power=False, time_filename=None, freq_filename=None):
     """
         All elements in signal array must be of the same lengt
     """
@@ -55,7 +55,7 @@ def plot_signals(signals, fs, labels=None):
     t = np.arange(n) / fs  # in ps
 
     ###### in time (absolute) #######
-    plt.figure(figsize=(10,4))
+    fig = plt.figure(figsize=(10,4))
     for i, sig in enumerate(signals):
         label = labels[i] if labels is not None else f"Signal {i+1}"
         plt.plot(t, np.abs(sig), label=label)
@@ -64,6 +64,10 @@ def plot_signals(signals, fs, labels=None):
     plt.grid(True)
     plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2)
     plt.tight_layout()
+
+    if time_filename is not None:
+        fig.savefig(time_filename)
+        plt.close(fig)
 
     ###### in frequency #######
     f = np.fft.fftfreq(n, d=1/fs)
@@ -77,7 +81,8 @@ def plot_signals(signals, fs, labels=None):
     # Plot amplitude
     for i, fft_sig in enumerate(fft_signals):
         label = labels[i] if labels is not None else f"Signal {i+1}"
-        ax_amp.plot(f_shifted, 20*np.log10(np.abs(fft_sig)), label=label)
+        amp = 20*np.log10(np.abs(fft_sig)) if not is_power else 10*np.log10(np.abs(fft_sig))
+        ax_amp.plot(f_shifted, amp, label=label)
         ax_phase.plot(f_shifted, np.unwrap(np.angle(fft_sig)), label=label)
     ax_amp.set_title("Amplitude Spectrum")
     ax_amp.set_ylabel("Amplitude")
@@ -89,6 +94,10 @@ def plot_signals(signals, fs, labels=None):
     ax_phase.legend(loc='upper center', bbox_to_anchor=(0.5, -0.25), ncol=2)
 
     plt.tight_layout()
+
+    if freq_filename is not None:
+        fig.savefig(freq_filename)
+        plt.close(fig)
 
 def plot_MZM(E_out, E_in, u, Vpi, Vbias):
     trans = E_out / E_in

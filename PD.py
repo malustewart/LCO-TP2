@@ -97,9 +97,9 @@ def pd(params: PdSystem) -> np.ndarray:
     n_samples = len(Ein)
     Fn = 10**(Fn_dB/10)
     # Definición del filtro pasa bajos del fotodetector
-    sos = sg.bessel(N=5, Wn=2*B/fs, btype="low", output="sos", norm="mag")
+    sos = sg.bessel(N=5, Wn=B, btype="low", output="sos", fs=fs, norm="mag")
 
-    i_s = r * np.real(Ein)**2
+    i_s = r * np.abs(Ein)**2
 
     var_sh = 0 if disable_shot_noise else sc.e * (i_s + i_d)*fs
     i_sh = np.random.normal(0, np.sqrt(var_sh), n_samples)

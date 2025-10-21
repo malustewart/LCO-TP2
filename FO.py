@@ -160,7 +160,8 @@ if __name__ == "__main__":
 
     for i, sys in enumerate(systems):
         result = optical_fiber(sys)
-        plot_signals([A0, result[0]], fs, ["Initial signal", f"Final signal ({i})"]) 
-        plot_signal_timemap(result[1], t, result[2])
+        filename = f"FO_a_{sys.alpha}_b2_{sys.beta_2}_b3_{sys.beta_3}_gamma_{sys.gamma}_L_{sys.length}"
+        plot_signals([A0, result[0]], fs, ["Initial signal", f"Final signal ({i})"], time_filename=f"figs/{filename}_time.svg", freq_filename=f"figs/{filename}_freq.svg") 
+        # plot_signal_timemap(result[1], t, result[2])
 
     show_plots()
