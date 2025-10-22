@@ -244,4 +244,9 @@ if __name__ == "__main__":
     ej_5(P_dbm=-10, L=60,  beta_2=-20, beta_3=0.1, gamma=1.5, alpha_of_db=0)
     ej_5(P_dbm=-10, L=80,  beta_2=-20, beta_3=0.1, gamma=1.5, alpha_of_db=0)
     ej_5(P_dbm=-10, L=100, beta_2=-20, beta_3=0.1, gamma=1.5, alpha_of_db=0)
+    ej_5(P_dbm=-7, L=20,  beta_2=-20, beta_3=0.1, gamma=1.5, alpha_of_db=0)
+    ej_5(P_dbm=-7, L=40,  beta_2=-20, beta_3=0.1, gamma=1.5, alpha_of_db=0)
+    ej_5(P_dbm=-7, L=60,  beta_2=-20, beta_3=0.1, gamma=1.5, alpha_of_db=0)
+    ej_5(P_dbm=-7, L=80,  beta_2=-20, beta_3=0.1, gamma=1.5, alpha_of_db=0)
+    ej_5(P_dbm=-7, L=100, beta_2=-20, beta_3=0.1, gamma=1.5, alpha_of_db=0)
 
